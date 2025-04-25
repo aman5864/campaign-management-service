@@ -1,10 +1,10 @@
-# 📣 Campaign Management Service
+# Campaign Management Service
 
 A backend service built with Django and Django REST Framework for managing discount campaigns with customer targeting, usage limits, and budget constraints.
 
 ---
 
-## 🚀 Features
+## Features
 
 - Create, update, delete discount campaigns
 - Set constraints: duration, total budget, daily usage per user
@@ -18,7 +18,7 @@ A backend service built with Django and Django REST Framework for managing disco
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Python 3.10+**
 - **Django 4.2+**
@@ -27,7 +27,7 @@ A backend service built with Django and Django REST Framework for managing disco
 
 ---
 
-## 📦 Setup Instructions
+## Setup Instructions
 
 1. **Clone the repository**  
    ```bash
