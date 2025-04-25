@@ -16,7 +16,7 @@ class Customer(models.Model):
 
 
 class Campaign(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2)
     start_date = models.DateTimeField()
