@@ -23,6 +23,22 @@ def has_exceeded_usage(campaign, customer):
     return usage_log and usage_log.usage_count >= campaign.usage_limit_per_customer_per_day
 
 
+def is_valid_campaign(campaign, customer, cart_total, delivery_fee):
+    today = timezone.now().date()
+    if not is_campaign_active(campaign):
+        return False
+    usage_log = CampaignUsageLog.objects.filter(
+        campaign=campaign, customer=customer, date=today
+    ).first()
+    if usage_log and usage_log.usage_count >= campaign.usage_limit_per_customer_per_day:
+        return False
+    if campaign.discount_type == 'cart' and cart_total >= campaign.discount_amount:
+        return True
+    if campaign.discount_type == 'delivery' and delivery_fee >= campaign.discount_amount:
+        return True
+    return False
+
+
 class CampaignListCreateAPIView(APIView):
 
     def get(self, request):
@@ -66,21 +82,19 @@ class AvailableCampaignAPIView(APIView):
 
     def get(self, request):
         customer_id = request.query_params.get('customer_id')
-        cart_total = float(request.query_params.get('cart_total', 0))
-        delivery_fee = float(request.query_params.get('delivery_fee', 0))
+        try:
+            cart_total = float(request.query_params.get('cart_total', 0))
+            delivery_fee = float(request.query_params.get('delivery_fee', 0))
+        except ValueError:
+            return Response({'error': 'cart_total and delivery_fee must be numbers'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not customer_id:
             return Response({'error': 'customer_id is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         customer = get_object_or_404(Customer, pk=customer_id)
-        available_campaigns = []
+        campaigns = Campaign.objects.prefetch_related('target_customers').filter(target_customers=customer)
 
-        for campaign in Campaign.objects.filter(target_customers=customer):
-            if is_campaign_active(campaign) and not has_exceeded_usage(campaign, customer):
-                if campaign.discount_type == 'cart' and cart_total >= campaign.discount_amount:
-                    available_campaigns.append(campaign)
-                elif campaign.discount_type == 'delivery' and delivery_fee >= campaign.discount_amount:
-                    available_campaigns.append(campaign)
-
-        serializer = CampaignSerializer(available_campaigns, many=True)
+        valid_campaigns = [campaign for campaign in campaigns
+                           if is_valid_campaign(campaign, customer, cart_total, delivery_fee)]
+        serializer = CampaignSerializer(valid_campaigns, many=True)
         return Response(serializer.data)

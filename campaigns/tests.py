@@ -110,3 +110,50 @@ class CampaignTests(APITestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_is_valid_campaign_conditions(self):
+        from .views import is_valid_campaign
+        is_valid = is_valid_campaign(
+            campaign=self.active_campaign,
+            customer=self.customer1,
+            cart_total=200,
+            delivery_fee=10
+        )
+        self.assertTrue(is_valid)
+
+        CampaignUsageLog.objects.create(
+            campaign=self.active_campaign,
+            customer=self.customer1,
+            date=timezone.now().date(),
+            usage_count=2
+        )
+        is_valid = is_valid_campaign(
+            campaign=self.active_campaign,
+            customer=self.customer1,
+            cart_total=200,
+            delivery_fee=10
+        )
+        self.assertFalse(is_valid)
+
+        self.active_campaign.usage_limit_per_customer_per_day = 3
+        self.active_campaign.save()
+        is_valid = is_valid_campaign(
+            campaign=self.active_campaign,
+            customer=self.customer1,
+            cart_total=20,
+            delivery_fee=100
+        )
+        self.assertFalse(is_valid)
+
+        self.active_campaign.discount_type = 'delivery'
+        self.active_campaign.discount_amount = 50
+        self.active_campaign.save()
+
+        is_valid = is_valid_campaign(
+            campaign=self.active_campaign,
+            customer=self.customer1,
+            cart_total=20,
+            delivery_fee=60
+        )
+        self.assertTrue(is_valid)
+
+
